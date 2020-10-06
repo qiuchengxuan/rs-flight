@@ -8,7 +8,8 @@ def main():
     if len(parts) < 2:
         return
     line = parts[1][1:-1]
-    print(''.join(chr(int(b, 16)) for b in line.split(',')),)
+    print(''.join(chr(int(b, 16)) for b in line.split(',')), )
+
 
 if __name__ == '__main__':
     main()

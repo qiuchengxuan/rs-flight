@@ -1,17 +1,14 @@
 #!/usr/bin/env python3
-import code
-import json
 import sys
 import time
-from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Dict
 
 import numpy
-from jsonpath import jsonpath
 
 from cli import CLI
+from telemetry import get_sensitive, read_sensor
 
 
 class Attitude(Enum):
@@ -33,20 +30,11 @@ class Attitude(Enum):
         }[self]
 
 
-def get_sensitive(cli: CLI) -> int:
-    output = json.loads(cli.tx('telemetry'))
-    return jsonpath(output, 'raw.acceleration.sensitive')[0]
-
-
 def get_average(cli: CLI) -> numpy.array:
-    output = json.loads(cli.tx('telemetry'))
-    axes = jsonpath(output, 'raw.acceleration.axes')[0]
-    avg = numpy.array([axes['x'], axes['y'], axes['z']])
+    avg = read_sensor('acceleration')
     for i in range(50):
         time.sleep(0.02)
-        output = json.loads(cli.tx('telemetry'))
-        axes = jsonpath(output, 'raw.acceleration.axes')[0]
-        avg = (avg + numpy.array([axes['x'], axes['y'], axes['z']])) / 2
+        avg = (avg + read_sensor('acceleration')) / 2
     return avg
 
 
@@ -91,7 +79,7 @@ def main():
         return
 
     cli = CLI(path)
-    sensitive = get_sensitive(cli)
+    sensitive = get_sensitive(cli, 'acceleration')
 
     try:
         data = collect(cli)

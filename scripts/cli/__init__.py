@@ -13,9 +13,9 @@ class CLI:
 
     def tx(self, cmd: str) -> str:
         self._pexpect.send('\r')
-        self._pexpect.expect('#')
+        self._pexpect.expect('cli>')
         cmd = cmd.strip() + '\r'
         self._pexpect.send(cmd)
         self._pexpect.expect(cmd)
-        self._pexpect.expect('#')
+        self._pexpect.expect('cli>')
         return self._pexpect.before.decode('utf-8').strip().replace('\r\n', '\n')

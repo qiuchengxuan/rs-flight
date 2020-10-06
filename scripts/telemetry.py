@@ -1,39 +1,17 @@
-#!/usr/bin/env python3
-import sys
-import time
-from pathlib import Path
+import json
+
+import numpy
+from jsonpath import jsonpath
 
 from cli import CLI
 
 
-def main():
-    if len(sys.argv) < 2:
-        print("Serial not specified")
-        return
+def get_sensitive(cli: CLI, sensor: str) -> int:
+    output = json.loads(cli.tx('telemetry'))
+    return jsonpath(output, 'raw.%s.sensitive' % sensor)[0]
 
-    path = sys.argv[1]
-    if not Path(path).exists():
-        print("Not found:", sys.argv[1])
-        return
 
-    interval = 1.0
-    if len(sys.argv) >= 3:
-        interval = float(sys.argv[2])
-
-    repeat = 1
-    if len(sys.argv) >= 4:
-        repeat = int(sys.argv[3])
-
-    cli = CLI(path)
-    if repeat == -1:
-        while True:
-            print(cli.tx('telemetry'))
-            time.sleep(interval)
-    else:
-        for i in range(repeat):
-            print(cli.tx('telemetry'))
-            time.sleep(interval)
-    cli.close()
-
-if __name__ == '__main__':
-    main()
+def read_sensor(cli: CLI, sensor: str) -> numpy.array:
+    output = json.loads(cli.tx('telemetry'))
+    axes = jsonpath(output, 'raw.%s.axes' % sensor)[0]
+    return numpy.array([axes['x'], axes['y'], axes['z']])
