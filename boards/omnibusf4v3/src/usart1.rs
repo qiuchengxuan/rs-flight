@@ -50,7 +50,6 @@ pub fn init(
 
     unsafe {
         let usart = &*stm32::USART1::ptr();
-        usart.cr3.modify(|_, w| w.dmar().enabled());
 
         let dma_buffer = Box::leak(alloc_by_config(&config));
         let address = dma_buffer.as_ptr() as usize + 2;

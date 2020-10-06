@@ -1,6 +1,5 @@
 use embedded_hal::blocking::delay::DelayUs;
 use mpu6000::bus::Bus;
-use mpu6000::measurement;
 use mpu6000::registers::{AccelerometerSensitive, GyroSensitive};
 use mpu6000::{self, ClockSource, IntPinConfig, Interrupt, MPU6000};
 
@@ -14,18 +13,18 @@ static mut ACCELEROMETER_SENSITIVE: AccelerometerSensitive =
     accelerometer_sensitive!(+/-16g, 2048/LSB);
 pub const GYRO_SENSITIVE: GyroSensitive = gyro_sensitive!(+/-1000dps, 32.8LSB/dps);
 
-impl Into<Measurement> for mpu6000::measurement::Measurement<AccelerometerSensitive> {
+impl Into<Measurement> for mpu6000::Acceleration {
     fn into(self) -> Measurement {
-        let axes = Axes { x: -self.x as i32, y: -self.y as i32, z: -self.z as i32 };
+        let axes = Axes { x: -self.0 as i32, y: -self.1 as i32, z: -self.2 as i32 };
         let sensitive: f32 = unsafe { ACCELEROMETER_SENSITIVE }.into();
         Measurement { axes, sensitive: sensitive as i32 }
     }
 }
 
-impl Into<Measurement> for mpu6000::measurement::Measurement<GyroSensitive> {
+impl Into<Measurement> for mpu6000::Gyro {
     fn into(self) -> Measurement {
         let axes =
-            Axes { x: (self.x as i32) << 8, y: (self.y as i32) << 8, z: (self.z as i32) << 8 };
+            Axes { x: (self.0 as i32) << 8, y: (self.1 as i32) << 8, z: (self.2 as i32) << 8 };
         let sensitive: f32 = GYRO_SENSITIVE.into();
         Measurement { axes, sensitive: (sensitive * 256.0) as i32 }
     }
@@ -33,8 +32,8 @@ impl Into<Measurement> for mpu6000::measurement::Measurement<GyroSensitive> {
 
 pub unsafe fn on_dma_receive(dma_buffer: &[u8; 16]) {
     let buf: &[i16; 8] = core::mem::transmute(dma_buffer);
-    let acceleration = measurement::Measurement::from_array(&buf[1..], ACCELEROMETER_SENSITIVE);
-    let gyro = measurement::Measurement::from_array(&buf[5..], GYRO_SENSITIVE);
+    let acceleration: mpu6000::Acceleration = buf[1..4].into();
+    let gyro: mpu6000::Gyro = buf[5..].into();
     if let Some(ref mut accelerometer) = accelerometer::ACCELEROMETER {
         accelerometer.write(Acceleration(acceleration.into()));
     }

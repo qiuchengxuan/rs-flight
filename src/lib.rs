@@ -7,9 +7,10 @@ extern crate ascii;
 extern crate ascii_osd_hud;
 extern crate bmp280_core as bmp280;
 extern crate crc;
+extern crate embedded_dma;
+extern crate embedded_sdmmc;
 #[macro_use]
 extern crate enum_map;
-extern crate embedded_sdmmc;
 extern crate integer_sqrt;
 extern crate micromath;
 #[macro_use]

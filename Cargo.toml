@@ -10,6 +10,7 @@ ascii = { version = "1.0", default-features = false }
 ascii-osd-hud = { git = "https://github.com/qiuchengxuan/ascii-osd-hud" }
 bmp280-core = "0.1"
 crc = { version = "1.8", default-features = false }
+embedded-dma = "0.1"
 embedded-hal = "0.2"
 embedded-sdmmc = "0.3"
 qmc5883l = { git = "https://github.com/qiuchengxuan/qmc5883l" }
@@ -18,7 +19,7 @@ git-version = "0.3.4"
 integer-sqrt = "0.1"
 max7456 = "0.1"
 micromath = "1.0"
-mpu6000 = "0.1"
+mpu6000 = { git = "https://github.com/qiuchengxuan/mpu6000" }
 nalgebra = { version = "0.21", default-features = false }
 nb = "0.1"
 nmea0183-core = { git = "https://github.com/qiuchengxuan/nmea0183" }

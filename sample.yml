@@ -70,11 +70,12 @@ outputs:
     rate: 400
   PWM3:
     type: elevator
-    reversed: true
   PWM4:
     type: aileron-right
+    reversed: true
   PWM5:
     type: aileron-left
+    reversed: true
   PWM6:
     type: rudder
     min-angle: -80

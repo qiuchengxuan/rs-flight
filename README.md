@@ -26,8 +26,10 @@ Progress
   - [x] GNSS improved AHRS
   - [x] Complementary filter
   - [x] GNSS NMEA Protocol
+  - [x] QMC5883L magnetometer
 * WIP
   - [ ] Stabilizer
+  - [ ] DMA based I2C
 * Future
   - [ ] INS calibration
   - [ ] Replace JSON with Mavlink

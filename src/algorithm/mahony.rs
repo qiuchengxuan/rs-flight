@@ -47,12 +47,12 @@ impl Mahony {
                     }
                 }
             }
-            MagnetismOrHeading::Heading(mut heading) => {
-                heading = heading.to_radians();
+            MagnetismOrHeading::Heading(heading) => {
                 let mut estimated = q.transform_vector(&Vector3::new(0.0, 1.0, 0.0));
                 estimated[2] = 0.0;
                 if let Some(estimated) = estimated.try_normalize(0.01) {
-                    let actual = Vector3::new(heading.sin(), -heading.cos(), 0.0);
+                    let rad = heading.to_radians();
+                    let actual = Vector3::new(rad.sin(), rad.cos(), 0.0);
                     let error = actual.cross(&estimated);
                     return q.inverse_transform_vector(&error);
                 }

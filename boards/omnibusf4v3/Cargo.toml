@@ -19,7 +19,7 @@ embedded-hal = "0.2"
 embedded-sdmmc = "0.3"
 # prevent compile log module referenced in embedded-sdmmc
 log = { version = "0.4", features = ["max_level_off"] }
-mpu6000 = "0.1"
+mpu6000 = { git = "https://github.com/qiuchengxuan/mpu6000" }
 max7456 = "0.1"
 nb = "0.1"
 rs-flight = { path = "../../" }
