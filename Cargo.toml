@@ -13,9 +13,9 @@ crc = { version = "1.8", default-features = false }
 embedded-dma = "0.1"
 embedded-hal = "0.2"
 embedded-sdmmc = "0.3"
-qmc5883l = { git = "https://github.com/qiuchengxuan/qmc5883l" }
 enum-map = { version = "0.6", default-features = false }
 git-version = "0.3.4"
+heapless = "0.5"
 integer-sqrt = "0.1"
 max7456 = "0.1"
 micromath = "1.0"
@@ -23,6 +23,7 @@ mpu6000 = { git = "https://github.com/qiuchengxuan/mpu6000" }
 nalgebra = { version = "0.21", default-features = false }
 nb = "0.1"
 nmea0183-core = { git = "https://github.com/qiuchengxuan/nmea0183" }
+qmc5883l = { git = "https://github.com/qiuchengxuan/qmc5883l" }
 sbus-parser = { git = "https://github.com/qiuchengxuan/sbus" }
 stm32f4xx-hal = { git = "https://github.com/stm32-rs/stm32f4xx-hal", features = ["stm32f405", "rt", "usb_fs"] }
 sval = { version = "0.5", features = ["derive"] }

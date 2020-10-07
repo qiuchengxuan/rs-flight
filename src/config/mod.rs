@@ -3,6 +3,7 @@ pub mod battery;
 pub mod imu;
 pub mod osd;
 pub mod output;
+pub mod parser;
 pub mod receiver;
 pub mod serial;
 pub mod setter;

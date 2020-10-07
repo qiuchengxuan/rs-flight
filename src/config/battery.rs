@@ -1,8 +1,10 @@
-use core::fmt::{Result, Write};
+use core::fmt::Write;
+use core::str::Split;
 
 use crate::datastructures::decimal::IntegerDecimal;
 
-use super::yaml::{FromYAML, ToYAML, YamlParser};
+use super::setter::{SetError, Setter};
+use super::yaml::ToYAML;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Battery {
@@ -23,22 +25,17 @@ impl Default for Battery {
     }
 }
 
-impl FromYAML for Battery {
-    fn from_yaml<'a>(parser: &mut YamlParser<'a>) -> Self {
-        let mut cells: u8 = 0;
-        let mut min_cell_voltage = IntegerDecimal::from("3.3");
-        let mut max_cell_voltage = IntegerDecimal::from("4.2");
-        let mut warning_cell_voltage = IntegerDecimal::from("3.5");
-        while let Some((key, value)) = parser.next_key_value() {
-            match key {
-                "cells" => cells = value.parse().unwrap_or(0),
-                "min-cell-voltage" => min_cell_voltage = IntegerDecimal::from(value),
-                "max-cell-voltage" => max_cell_voltage = IntegerDecimal::from(value),
-                "warning-cell-voltage" => warning_cell_voltage = IntegerDecimal::from(value),
-                _ => continue,
-            }
+impl Setter for Battery {
+    fn set(&mut self, path: &mut Split<char>, value: Option<&str>) -> Result<(), SetError> {
+        let key = path.next().ok_or(SetError::MalformedPath)?;
+        let value = value.ok_or(SetError::ExpectValue)?;
+        match path.next() {
+            "cells" => self.cells = value.parse().map_err(|_| SetError::UnexpectedValue)?,
+            "min-cell-voltage" => self.min_cell_voltage = IntegerDecimal::from(value),
+            "max-cell-voltage" => self.max_cell_voltage = IntegerDecimal::from(value),
+            "warning-cell-voltage" => self.warning_cell_voltage = IntegerDecimal::from(value),
+            _ => return Err(SetError::MalformedPath),
         }
-        Self { cells, min_cell_voltage, max_cell_voltage, warning_cell_voltage }
     }
 }
 
