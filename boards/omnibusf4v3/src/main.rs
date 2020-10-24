@@ -339,7 +339,7 @@ fn main() -> ! {
     if let Some(i2c2) = i2c2.take() {
         tasks.insert(0, Box::new(i2c2));
     }
-    let group = Scheduler::new(tasks, 200);
+    let group = Scheduler::new(tasks, 1000);
     tim7_scheduler::init(peripherals.TIM7, Box::new(group), clocks, 200);
 
     let mut cli = CLI::new(telemetry_source, reboot, bootloader, free);

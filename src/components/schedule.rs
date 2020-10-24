@@ -5,7 +5,9 @@ use core::ptr::{read_volatile, write_volatile};
 pub type Rate = usize;
 
 pub trait Schedulable {
+    fn pre_schedule(&mut self) {}
     fn schedule(&mut self) -> bool;
+    fn post_schedule(&mut self) {}
     fn rate(&self) -> Rate;
 }
 
@@ -45,14 +47,25 @@ impl Schedulable for Scheduler {
         }
 
         unsafe { write_volatile(&mut self.running, true) };
-        for i in 0..self.schedulables.len() {
+        let mut tasks: Vec<(usize, &mut dyn Schedulable)> =
+            Vec::with_capacity(self.schedulables.len());
+        for (i, schedulable) in self.schedulables.iter_mut().enumerate() {
             let task_info = &mut self.task_infos[i];
             if task_info.counter < task_info.interval {
                 continue;
             }
-            if self.schedulables[i].schedule() {
-                task_info.counter = 0;
+            tasks.push((i, schedulable.as_mut()));
+        }
+        for (_, schedulable) in tasks.iter_mut() {
+            schedulable.pre_schedule();
+        }
+        for (i, schedulable) in tasks.iter_mut() {
+            if schedulable.schedule() {
+                self.task_infos[*i].counter = 0;
             }
+        }
+        for (_, schedulable) in tasks.iter_mut() {
+            schedulable.post_schedule();
         }
         unsafe { write_volatile(&mut self.running, false) };
         true
