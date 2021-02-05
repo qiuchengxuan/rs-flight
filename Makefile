@@ -22,7 +22,7 @@ test:
 
 .PHONY: clean
 clean:
-	cargo clean
+	(cd boards/$(BOARD); cargo clean)
 
 .PHONY: dfu
 dfu: $(BOARD).bin

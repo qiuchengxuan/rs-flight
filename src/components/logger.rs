@@ -3,7 +3,7 @@ use core::cmp::Ordering;
 use core::fmt::{Display, Formatter, Result, Write};
 
 use crate::datastructures::data_source::overwriting::{OverwritingData, OverwritingDataSource};
-use crate::sys::timer::get_jiffies;
+use crate::sys::jiffies;
 
 #[derive(Copy, Clone, PartialEq)]
 pub enum Level {
@@ -39,7 +39,7 @@ pub fn __write_log(args: core::fmt::Arguments, level: Level) {
         return;
     }
     let logger = unsafe { LOGGER.as_mut().unwrap() };
-    let jiffies = get_jiffies();
+    let jiffies = jiffies::get();
     let seconds = jiffies.as_secs() as u32;
     writeln!(logger, "[{:5}.{:03}] {}", seconds, jiffies.subsec_millis(), args).ok();
 }
@@ -50,7 +50,7 @@ pub fn __write_log_literal(message: &'static str, level: Level) {
         return;
     }
     let logger = unsafe { LOGGER.as_mut().unwrap() };
-    let jiffies = get_jiffies();
+    let jiffies = jiffies::get();
     let seconds = jiffies.as_secs() as u32;
     writeln!(logger, "[{:5}.{:03}] {}", seconds, jiffies.subsec_millis(), message).ok();
 }

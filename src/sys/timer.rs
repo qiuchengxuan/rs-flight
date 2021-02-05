@@ -5,25 +5,13 @@ use embedded_hal::timer::CountDown;
 use nb;
 use void::Void;
 
-fn no_jiffies() -> Duration {
-    Duration::default()
-}
-
-static mut JIFFIES: fn() -> Duration = no_jiffies;
-
-pub fn get_jiffies() -> Duration {
-    unsafe { JIFFIES() }
-}
-
-pub fn init(jiffies: fn() -> Duration) {
-    unsafe { JIFFIES = jiffies }
-}
+use super::jiffies;
 
 pub struct SysTimer(Duration);
 
 impl SysTimer {
     pub fn new() -> Self {
-        Self(get_jiffies())
+        Self(jiffies::get())
     }
 }
 
@@ -31,11 +19,11 @@ impl CountDown for SysTimer {
     type Time = Duration;
 
     fn start<T: Into<Duration>>(&mut self, duration: T) {
-        self.0 = get_jiffies() + duration.into();
+        self.0 = jiffies::get() + duration.into();
     }
 
     fn wait(&mut self) -> Result<(), nb::Error<Void>> {
-        if get_jiffies() >= self.0 {
+        if jiffies::get() >= self.0 {
             Ok(())
         } else {
             Err(nb::Error::WouldBlock)

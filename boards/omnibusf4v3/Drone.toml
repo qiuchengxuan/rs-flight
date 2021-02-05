@@ -1,0 +1,25 @@
+[memory]
+ram = { size = "64K", origin = 0x10000000 }
+flash = { size = "1M", origin = 0x08000000 }
+heap = { size = "128K", origin = 0x20000000 }
+
+[heap.main]
+size = "0"
+pools = []
+
+[heap.secondary]
+origin = 0x20000000
+size = "128K"
+pools = [
+    { block = "4", capacity = 1511 },
+    { block = "36", capacity = 415 },
+    { block = "216", capacity = 96 },
+    { block = "644", capacity = 39 },
+    { block = "1412", capacity = 17 },
+    { block = "2600", capacity = 8 },
+    { block = "4292", capacity = 3 },
+    { block = "6556", capacity = 1 },
+]
+
+[linker]
+platform = "arm"
