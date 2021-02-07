@@ -1,7 +1,7 @@
 use drone_cortexm::{fib, reg::prelude::*, thr::prelude::*};
 use drone_stm32_map::reg;
 
-use crate::thread;
+use crate::thread::Rcc;
 
 pub const SYSCLK: u32 = 168_000_000;
 pub const HCLK: u32 = SYSCLK;
@@ -19,7 +19,7 @@ type RccRegs = (
     reg::flash::Acr<Srt>,
 );
 
-pub async fn setup(rcc: thread::Rcc, regs: RccRegs) {
+pub async fn setup(rcc: Rcc, regs: RccRegs) {
     let (cfgr, cir, cr, pllcfgr, flash_acr) = regs;
 
     rcc.enable_int();

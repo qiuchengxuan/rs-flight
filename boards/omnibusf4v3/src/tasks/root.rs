@@ -1,14 +1,11 @@
 //! The root task.
 
-use core::fmt::Write;
 use core::time::Duration;
 
 use drone_cortexm::{reg::prelude::*, thr::prelude::*};
 use drone_stm32_map::periph::sys_tick::periph_sys_tick;
 use embedded_hal::timer::CountDown;
 use futures::prelude::*;
-use pro_flight::drivers::serial::Readline;
-use pro_flight::drivers::usb_serial;
 use pro_flight::sys::timer::SysTimer;
 use stm32f4xx_hal::{
     otg_fs::{UsbBus, USB},
@@ -17,6 +14,7 @@ use stm32f4xx_hal::{
 };
 
 use crate::stm32f4;
+use crate::stm32f4::usb_serial;
 use crate::{thread, thread::ThrsInit, Regs};
 
 const TICKS_PER_SEC: usize = 200;
@@ -49,19 +47,12 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
     };
 
     let allocator = UsbBus::new(usb, Box::leak(Box::new([0u32; 1024])));
-    let (mut serial, mut device) = usb_serial::init(&allocator);
-    let mut vec = Vec::with_capacity(80);
+    let mut poller = usb_serial::init(allocator);
 
     let mut timer = SysTimer::new();
     let mut on = false;
     while let Some(_) = stream.next().root_wait() {
-        if device.poll(&mut [&mut serial.0]) {
-            if let Some(line) = serial.readline(&mut vec) {
-                let line = unsafe { core::str::from_utf8_unchecked(line) };
-                writeln!(serial, "{}", line).ok();
-            };
-        }
-
+        poller.poll(|bytes| print!("{}", unsafe { core::str::from_utf8_unchecked(bytes) }));
         if !timer.wait().is_ok() {
             continue;
         }
