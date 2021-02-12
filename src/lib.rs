@@ -7,6 +7,8 @@ extern crate ascii;
 extern crate ascii_osd_hud;
 extern crate bmp280_core as bmp280;
 extern crate crc;
+#[macro_use]
+extern crate drone_core;
 extern crate embedded_dma;
 extern crate embedded_sdmmc;
 extern crate heapless;

@@ -63,7 +63,7 @@ extern "C" fn drone_log_flush() {
 pub struct UsbPoller(UsbDevice<'static, UsbBus<USB>>);
 
 impl UsbPoller {
-    pub fn poll(&mut self, receiver: fn(&[u8])) {
+    pub fn poll(&mut self, mut receiver: impl FnMut(&[u8])) {
         let mut buf = [0u8; 128];
         let mut size = 0;
         cortex_m::interrupt::free(|_| {
@@ -85,7 +85,7 @@ type Allocator = UsbBusAllocator<UsbBus<USB>>;
 pub fn init(alloc: Allocator) -> UsbPoller {
     let allocator: &'static mut Allocator = Box::leak(Box::new(alloc));
     unsafe { SERIAL_PORT = Some(SerialPort::new(allocator)) }
-    let device = UsbDeviceBuilder::new(allocator, UsbVidPid(0x16c0, 0x27dd))
+    let device = UsbDeviceBuilder::new(allocator, UsbVidPid(0x0403, 0x6001))
         .product("pro-flight")
         .device_class(usbd_serial::USB_CLASS_CDC)
         .build();

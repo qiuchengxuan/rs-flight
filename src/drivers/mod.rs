@@ -7,7 +7,6 @@ pub mod max7456;
 pub mod mpu6000;
 pub mod sbus;
 pub mod sdcard;
-pub mod serial;
 pub mod shared_spi;
+pub mod terminal;
 pub mod uart;
-pub mod usb_serial;

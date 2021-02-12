@@ -6,6 +6,7 @@ use drone_cortexm::{reg::prelude::*, thr::prelude::*};
 use drone_stm32_map::periph::sys_tick::periph_sys_tick;
 use embedded_hal::timer::CountDown;
 use futures::prelude::*;
+use pro_flight::drivers::terminal::Terminal;
 use pro_flight::sys::timer::SysTimer;
 use stm32f4xx_hal::{
     otg_fs::{UsbBus, USB},
@@ -48,11 +49,14 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
 
     let allocator = UsbBus::new(usb, Box::leak(Box::new([0u32; 1024])));
     let mut poller = usb_serial::init(allocator);
+    let mut terminal = Terminal::new();
 
     let mut timer = SysTimer::new();
     let mut on = false;
     while let Some(_) = stream.next().root_wait() {
-        poller.poll(|bytes| print!("{}", unsafe { core::str::from_utf8_unchecked(bytes) }));
+        poller.poll(|bytes| {
+            terminal.receive(bytes);
+        });
         if !timer.wait().is_ok() {
             continue;
         }

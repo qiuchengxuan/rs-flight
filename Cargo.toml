@@ -14,8 +14,9 @@ embedded-dma = "0.1"
 embedded-hal = "0.2"
 embedded-sdmmc = { git = "https://github.com/qiuchengxuan/embedded-sdmmc-rs", branch = "master" }
 enum-map = { version = "0.6", default-features = false }
+drone-core = { path = "../../../src/drone-os/drone-core" }
 git-version = "0.3.4"
-heapless = "0.5"
+heapless = "0.6"
 integer-sqrt = "0.1"
 max7456 = "0.1"
 micromath = "1.0"

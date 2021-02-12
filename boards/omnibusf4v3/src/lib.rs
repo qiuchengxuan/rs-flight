@@ -3,7 +3,7 @@
 #![feature(prelude_import)]
 #![feature(proc_macro_hygiene)]
 #![feature(slice_ptr_get)]
-#![cfg_attr(not(feature = "std"), no_std)]
+#![no_std]
 
 extern crate alloc;
 extern crate pro_flight;
