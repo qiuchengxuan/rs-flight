@@ -2,16 +2,23 @@ use alloc::vec::Vec;
 
 use ascii::{AsciiChar, ToAsciiChar};
 
-pub struct Terminal(Vec<u8>);
+pub struct Terminal {
+    buffer: Vec<u8>,
+    eol: bool,
+}
 
 const BACKSPACE: &str = "\x08 \x08";
 
 impl Terminal {
     pub fn new() -> Self {
-        Self(Vec::with_capacity(80))
+        Self { buffer: Vec::with_capacity(80), eol: false }
     }
 
     pub fn receive(&mut self, bytes: &[u8]) -> Option<&str> {
+        if self.eol {
+            self.eol = false;
+            self.buffer.truncate(0);
+        }
         let mut skip = false;
         for &b in bytes.iter() {
             if skip {
@@ -21,23 +28,24 @@ impl Terminal {
             let ch = unsafe { b.to_ascii_char_unchecked() };
             match ch {
                 AsciiChar::BackSpace => {
-                    if let Some(_) = self.0.pop() {
+                    if let Some(_) = self.buffer.pop() {
                         print!("{}", &BACKSPACE);
                     }
                 }
                 AsciiChar::DEL => {
-                    if let Some(_) = self.0.pop() {
+                    if let Some(_) = self.buffer.pop() {
                         print!("{}", &BACKSPACE);
                     }
                 }
                 AsciiChar::CarriageReturn => {
-                    println!("{}");
-                    return Some(unsafe { core::str::from_utf8_unchecked(self.0.as_slice()) });
+                    self.eol = true;
+                    println!("\r");
+                    return Some(unsafe { core::str::from_utf8_unchecked(self.buffer.as_slice()) });
                 }
                 AsciiChar::ETB => {
                     // ^W or CTRL+W
-                    while self.0.len() > 0 {
-                        if self.0.pop().unwrap() == ' ' as u8 {
+                    while self.buffer.len() > 0 {
+                        if self.buffer.pop().unwrap() == ' ' as u8 {
                             break;
                         }
                         print!("{}", &BACKSPACE);
@@ -47,7 +55,7 @@ impl Terminal {
                     skip = true;
                 }
                 _ => {
-                    self.0.push(b);
+                    self.buffer.push(b);
                     print!("{}", ch);
                 }
             }

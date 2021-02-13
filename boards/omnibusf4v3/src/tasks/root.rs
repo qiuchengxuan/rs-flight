@@ -1,10 +1,11 @@
 //! The root task.
 
+use chips::{stm32f4::dfu::Dfu, stm32f4::valid_memory_address};
 use drone_cortexm::{reg::prelude::*, thr::prelude::*};
 use drone_stm32_map::periph::sys_tick::periph_sys_tick;
 use futures::prelude::*;
+use pro_flight::components::cli::{memory, Command, CLI};
 use pro_flight::drivers::led::LED;
-use pro_flight::drivers::terminal::Terminal;
 use pro_flight::sys::timer::SysTimer;
 use stm32f4xx_hal::{
     otg_fs::{UsbBus, USB},
@@ -18,11 +19,24 @@ use crate::{thread, thread::ThrsInit, Regs};
 
 const TICKS_PER_SEC: usize = 200;
 
+fn reboot() {
+    cortex_m::peripheral::SCB::sys_reset()
+}
+
+fn bootloader() {
+    unsafe { DFU.arm() };
+    cortex_m::peripheral::SCB::sys_reset()
+}
+
+static mut DFU: Dfu = Dfu(0);
+
 /// The root task handler.
 #[inline(never)]
 pub fn handler(reg: Regs, thr_init: ThrsInit) {
-    let thread = thread::init(thr_init);
+    unsafe { DFU.check() };
 
+    memory::init(valid_memory_address);
+    let thread = thread::init(thr_init);
     thread.hard_fault.add_once(|| panic!("Hard Fault"));
 
     reg.rcc_apb1enr.pwren.set_bit();
@@ -43,14 +57,16 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
         pin_dp: gpio_a.pa12.into_alternate_af10(),
         hclk: stm32f4::clock::HCLK.into(),
     };
-
     let allocator = UsbBus::new(usb, Box::leak(Box::new([0u32; 1024])));
     let mut poller = usb_serial::init(allocator);
-    let mut terminal = Terminal::new();
+
+    let commands = [
+        Command::new("reboot", "Reboot", |_| reboot()),
+        Command::new("bootloader", "Reboot in bootloader", |_| bootloader()),
+    ];
+    let mut cli = CLI::new(&commands);
     while let Some(_) = stream.next().root_wait() {
-        poller.poll(|bytes| {
-            terminal.receive(bytes);
-        });
+        poller.poll(|bytes| cli.receive(bytes));
         led.check_toggle();
     }
 

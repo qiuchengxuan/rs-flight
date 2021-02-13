@@ -2,6 +2,8 @@ use core::time::Duration;
 
 use embedded_hal::timer::CountDown;
 
+use crate::sys::timer::SysTimer;
+
 pub type MemoryAddressValidator = fn(u32) -> bool;
 
 fn no_address_validator(_: u32) -> bool {
@@ -57,12 +59,13 @@ pub fn read(line: &str) {
     }
 }
 
-pub fn write(line: &str, count_down: &mut impl CountDown<Time = Duration>) {
+pub fn write(line: &str) {
     let mut iter = line[6..].split(' ').flat_map(|w| u32::from_str_radix(w, 16).ok());
     if let Some(address) = iter.next() {
         if let Some(value) = iter.next() {
             if unsafe { MEMORY_ADDRESS_VALIDATOR }(address) {
                 unsafe { *(address as *mut u32) = value };
+                let mut count_down = SysTimer::new();
                 count_down.start(Duration::from_millis(1));
                 nb::block!(count_down.wait()).ok();
                 let value = unsafe { *(address as *const u32) };
