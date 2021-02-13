@@ -2,6 +2,7 @@ pub mod accelerometer;
 pub mod barometer;
 pub mod gnss;
 pub mod gyroscope;
+pub mod led;
 pub mod magnetometer;
 pub mod max7456;
 pub mod mpu6000;

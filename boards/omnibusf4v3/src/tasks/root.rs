@@ -1,11 +1,9 @@
 //! The root task.
 
-use core::time::Duration;
-
 use drone_cortexm::{reg::prelude::*, thr::prelude::*};
 use drone_stm32_map::periph::sys_tick::periph_sys_tick;
-use embedded_hal::timer::CountDown;
 use futures::prelude::*;
+use pro_flight::drivers::led::LED;
 use pro_flight::drivers::terminal::Terminal;
 use pro_flight::sys::timer::SysTimer;
 use stm32f4xx_hal::{
@@ -34,8 +32,7 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
 
     let peripherals = stm32::Peripherals::take().unwrap();
     let gpio_b = peripherals.GPIOB.split();
-    let mut led = gpio_b.pb5.into_push_pull_output();
-    led.set_low().ok();
+    let mut led = LED::new(gpio_b.pb5.into_push_pull_output(), SysTimer::new());
 
     let gpio_a = peripherals.GPIOA.split();
     let usb = USB {
@@ -50,24 +47,11 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
     let allocator = UsbBus::new(usb, Box::leak(Box::new([0u32; 1024])));
     let mut poller = usb_serial::init(allocator);
     let mut terminal = Terminal::new();
-
-    let mut timer = SysTimer::new();
-    let mut on = false;
     while let Some(_) = stream.next().root_wait() {
         poller.poll(|bytes| {
             terminal.receive(bytes);
         });
-        if !timer.wait().is_ok() {
-            continue;
-        }
-        if on {
-            timer.start(Duration::from_millis(980));
-            led.set_high().ok();
-        } else {
-            timer.start(Duration::from_millis(20));
-            led.set_low().ok();
-        }
-        on = !on;
+        led.check_toggle();
     }
 
     reg.scb_scr.sleeponexit.set_bit(); // Enter a sleep state on ISR exit.
