@@ -6,10 +6,29 @@ name = "chips"
 version = "0.0.1"
 
 [dependencies]
+chrono = { version = "0.4", default-features = false }
 cortex-m = "0.6"
 cortex-m-rt = "0.6"
 crc = { version = "1.8", default-features = false }
+drone-core = { path = "../../../../src/drone-os/drone-core" }
+nb = "0.1"
 stm32f4xx-hal = { git = "https://github.com/stm32-rs/stm32f4xx-hal", optional = true }
+usb-device = "0.2"
+usbd-serial = "0.1"
+
+[dependencies.drone-cortexm]
+path = "../../../../src/drone-os/drone-cortexm"
+features = ["bit-band", "floating-point-unit", "memory-protection-unit"]
+optional = true
+
+[dependencies.drone-stm32-map]
+path = "../../../../src/drone-os/drone-stm32-map"
+features = ["exti", "rtc"]
+optional = true
+
+[features]
+default = []
+stm32 = ["drone-cortexm", "drone-stm32-map", "stm32f4xx-hal"]
 
 [lib]
 name = "chips"

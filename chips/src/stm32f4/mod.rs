@@ -1,6 +1,9 @@
-#[cfg(feature = "stm32f4xx-hal")]
+pub mod clock;
 pub mod crc;
 pub mod dfu;
+pub mod rtc;
+pub mod systick;
+pub mod usb_serial;
 
 pub fn valid_memory_address(address: u32) -> bool {
     match address {

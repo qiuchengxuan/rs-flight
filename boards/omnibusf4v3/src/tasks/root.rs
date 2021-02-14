@@ -1,21 +1,24 @@
 //! The root task.
 
-use chips::{stm32f4::dfu::Dfu, stm32f4::valid_memory_address};
+use chips::stm32f4::{clock, dfu::Dfu, rtc, systick, usb_serial, valid_memory_address};
 use drone_cortexm::{reg::prelude::*, thr::prelude::*};
-use drone_stm32_map::periph::sys_tick::periph_sys_tick;
+use drone_stm32_map::periph::{rtc::periph_rtc, sys_tick::periph_sys_tick};
 use futures::prelude::*;
 use pro_flight::components::cli::{memory, Command, CLI};
 use pro_flight::drivers::led::LED;
-use pro_flight::sys::timer::SysTimer;
+use pro_flight::sys::{jiffies, time, timer};
 use stm32f4xx_hal::{
     otg_fs::{UsbBus, USB},
     prelude::*,
     stm32,
 };
 
-use crate::stm32f4;
-use crate::stm32f4::usb_serial;
-use crate::{thread, thread::ThrsInit, Regs};
+use crate::{
+    rtc::{RTCReader, RTCWriter},
+    thread,
+    thread::ThrsInit,
+    Regs,
+};
 
 const TICKS_PER_SEC: usize = 200;
 
@@ -36,17 +39,27 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
     unsafe { DFU.check() };
 
     memory::init(valid_memory_address);
-    let thread = thread::init(thr_init);
+    let mut thread = thread::init(thr_init);
     thread.hard_fault.add_once(|| panic!("Hard Fault"));
+    thread.rcc.enable_int();
+    let rcc_cir = reg.rcc_cir.into_copy();
 
     reg.rcc_apb1enr.pwren.set_bit();
-    let regs = (reg.rcc_cfgr, reg.rcc_cir, reg.rcc_cr, reg.rcc_pllcfgr, reg.flash_acr);
-    stm32f4::clock::setup(thread.rcc, regs).root_wait();
-    let mut stream = stm32f4::systick::init(periph_sys_tick!(reg), thread.sys_tick, TICKS_PER_SEC);
+    let regs = (reg.rcc_cfgr, reg.rcc_cr, reg.rcc_pllcfgr, reg.flash_acr);
+    clock::setup_pll(&mut thread.rcc, rcc_cir, regs).root_wait();
+    let callback = jiffies::init(TICKS_PER_SEC);
+    let mut stream = systick::init(periph_sys_tick!(reg), thread.sys_tick, TICKS_PER_SEC, callback);
 
     let peripherals = stm32::Peripherals::take().unwrap();
     let gpio_b = peripherals.GPIOB.split();
-    let mut led = LED::new(gpio_b.pb5.into_push_pull_output(), SysTimer::new());
+    let mut led = LED::new(gpio_b.pb5.into_push_pull_output(), timer::SysTimer::new());
+
+    reg.pwr_cr.modify(|r| r.set_dbp());
+    reg.rcc_bdcr.modify(|r| r.set_rtcsel1().set_rtcsel0().set_rtcen()); // select HSE
+    let mut rtc = rtc::RTC::new(periph_rtc!(reg));
+    rtc.disable_write_protect();
+    let rtc_reader = rtc.reader();
+    time::init(RTCWriter(rtc), RTCReader(rtc_reader));
 
     let gpio_a = peripherals.GPIOA.split();
     let usb = USB {
@@ -55,7 +68,7 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
         usb_pwrclk: peripherals.OTG_FS_PWRCLK,
         pin_dm: gpio_a.pa11.into_alternate_af10(),
         pin_dp: gpio_a.pa12.into_alternate_af10(),
-        hclk: stm32f4::clock::HCLK.into(),
+        hclk: clock::HCLK.into(),
     };
     let allocator = UsbBus::new(usb, Box::leak(Box::new([0u32; 1024])));
     let mut poller = usb_serial::init(allocator);

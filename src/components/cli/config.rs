@@ -9,7 +9,6 @@ pub fn show() {
 
 pub fn set(line: &str) {
     let mut split = line.split(' ');
-    split.next();
     if let Some(path) = split.next() {
         let mut config = config::get().clone();
         match config.set(&mut path.split('.'), Value(split.next())) {

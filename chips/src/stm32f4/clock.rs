@@ -1,33 +1,28 @@
-use drone_cortexm::{fib, reg::prelude::*, thr::prelude::*};
+use drone_core::fib::ThrFiberFuture;
+use drone_core::reg::prelude::*;
+use drone_cortexm::{fib, reg::prelude::*};
 use drone_stm32_map::reg;
-
-use crate::thread::Rcc;
 
 pub const SYSCLK: u32 = 168_000_000;
 pub const HCLK: u32 = SYSCLK;
 const HPRE: u32 = 1; // = SYSCLK
 const PPRE1: u32 = 0b101; // SYSCLK / 4 = 42MHz
 const PPRE2: u32 = 0b100; // SYSCLK / 2 = 84MHz
+const RTCPRE: u32 = 8; // HSE / 8 = 1MHz
 const PLL_SELECTED: u32 = 0b10;
 const FLASH_LATENCY: u32 = (SYSCLK - 1) / 30_000_000;
 
-type RccRegs = (
-    reg::rcc::Cfgr<Srt>,
-    reg::rcc::Cir<Srt>,
-    reg::rcc::Cr<Srt>,
-    reg::rcc::Pllcfgr<Srt>,
-    reg::flash::Acr<Srt>,
-);
+type RccRegs =
+    (reg::rcc::Cfgr<Srt>, reg::rcc::Cr<Srt>, reg::rcc::Pllcfgr<Srt>, reg::flash::Acr<Srt>);
 
-pub async fn setup(rcc: Rcc, regs: RccRegs) {
-    let (cfgr, cir, cr, pllcfgr, flash_acr) = regs;
+pub async fn setup_pll(thread: &mut impl ThrFiberFuture, cir: reg::rcc::Cir<Crt>, regs: RccRegs) {
+    let (cfgr, cr, pllcfgr, flash_acr) = regs;
 
-    rcc.enable_int();
     cir.modify(|r| r.set_hserdyie().set_pllrdyie());
 
     let reg::rcc::Cir { hserdyc, hserdyf, .. } = cir;
 
-    let hse_ready = rcc.add_future(fib::new_fn(move || {
+    let hse_ready = thread.add_future(fib::new_fn(move || {
         if !hserdyf.read_bit() {
             return fib::Yielded(());
         }
@@ -43,7 +38,7 @@ pub async fn setup(rcc: Rcc, regs: RccRegs) {
     pllcfgr.modify(|r| r.write_pllm(8).write_plln(336).write_pllp(0).write_pllq(7).set_pllsrc());
     cr.modify(|r| r.set_pllon());
     let reg::rcc::Cir { pllrdyc, pllrdyf, .. } = cir;
-    let pll_ready = rcc.add_future(fib::new_fn(move || {
+    let pll_ready = thread.add_future(fib::new_fn(move || {
         if !pllrdyf.read_bit() {
             return fib::Yielded(());
         }
@@ -52,6 +47,6 @@ pub async fn setup(rcc: Rcc, regs: RccRegs) {
     }));
     pll_ready.await;
 
-    cfgr.modify(|r| r.write_hpre(HPRE).write_ppre1(PPRE1).write_ppre2(PPRE2));
+    cfgr.modify(|r| r.write_hpre(HPRE).write_ppre1(PPRE1).write_ppre2(PPRE2).write_rtcpre(RTCPRE));
     cfgr.modify(|r| r.write_sw(PLL_SELECTED));
 }

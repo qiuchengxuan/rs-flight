@@ -1,4 +1,5 @@
 mod config;
+mod datetime;
 pub mod memory;
 
 use git_version::git_version;
@@ -28,11 +29,12 @@ macro_rules! command {
     };
 }
 
-const BUILTIN_CMDS: [Command; 9] = [
+const BUILTIN_CMDS: [Command; 10] = [
+    command!("date", "Show date", |line| datetime::date(line)),
     command!("dump", "Dump memory address", |line| memory::dump(line)),
     command!("logread", "Read log", |_| print!("{}", logger::get())),
     command!("read", "Read memory address", |line| memory::read(line)),
-    command!("readx", "Read memory address in hex", |line| memory::read(line)),
+    command!("readx", "Read memory address in hex", |line| memory::readx(line)),
     command!("write", "Write memory address", |line| memory::write(line)),
     command!("save", "Save config", |_| config::save()),
     command!("set", "Set config entry", |line| config::set(line)),
@@ -59,21 +61,23 @@ impl<'a> CLI<'a> {
             print!("\r{}", PROMPT);
             return;
         }
-        let first_word = match line.split(' ').next() {
+        let mut split = line.splitn(2, ' ');
+        let first_word = match split.next() {
             Some(word) => word,
             None => {
                 print!("\r{}", PROMPT);
                 return;
             }
         };
+        let remain = split.next().unwrap_or("");
         match first_word {
             "" => (),
             "help" => {
                 for command in BUILTIN_CMDS.iter() {
-                    println!("{}\t{}", command.name, command.description);
+                    println!("{}\t\t{}", command.name, command.description);
                 }
                 for command in self.commands.iter() {
-                    println!("{}\t{}", command.name, command.description);
+                    println!("{}\t\t{}", command.name, command.description);
                 }
             }
             _ => {
@@ -82,7 +86,7 @@ impl<'a> CLI<'a> {
                     cmd = self.commands.iter().find(|cmd| cmd.name == first_word);
                 }
                 match cmd {
-                    Some(cmd) => (cmd.action)(line),
+                    Some(cmd) => (cmd.action)(remain),
                     None => println!("Unknown command: {}", first_word),
                 }
                 print!("\r{}", PROMPT);

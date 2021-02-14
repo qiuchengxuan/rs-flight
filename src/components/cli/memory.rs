@@ -17,7 +17,7 @@ pub fn init(validator: MemoryAddressValidator) {
 }
 
 pub fn dump(line: &str) {
-    let mut iter = line[5..].split(' ');
+    let mut iter = line.split(' ');
     let mut address: u32 = 0;
     if let Some(word) = iter.next() {
         if let Some(addr) = u32::from_str_radix(word, 16).ok() {
@@ -40,23 +40,27 @@ pub fn dump(line: &str) {
     println!("Result: {:x?}", slice)
 }
 
-pub fn read(line: &str) {
+fn _read(line: &str, hex: bool) {
     let mut split = line.split(' ');
-    let read = split.next().unwrap_or("read");
     if let Some(address) = split.next().map(|s| u32::from_str_radix(s, 16).ok()).flatten() {
         if unsafe { MEMORY_ADDRESS_VALIDATOR }(address) {
-            return match read {
-                "readx" => {
-                    let value = unsafe { *(address as *const u32) };
-                    println!("Result: {:x}", value)
-                }
-                _ => {
-                    let value = unsafe { *(address as *const u32) };
-                    println!("Result: {}", value)
-                }
+            return if hex {
+                let value = unsafe { *(address as *const u32) };
+                println!("Result: {:x}", value)
+            } else {
+                let value = unsafe { *(address as *const u32) };
+                println!("Result: {}", value)
             };
         }
     }
+}
+
+pub fn read(line: &str) {
+    _read(line, false)
+}
+
+pub fn readx(line: &str) {
+    _read(line, true)
 }
 
 pub fn write(line: &str) {

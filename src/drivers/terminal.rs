@@ -39,7 +39,7 @@ impl Terminal {
                 }
                 AsciiChar::CarriageReturn => {
                     self.eol = true;
-                    println!("\r");
+                    println!("");
                     return Some(unsafe { core::str::from_utf8_unchecked(self.buffer.as_slice()) });
                 }
                 AsciiChar::ETB => {

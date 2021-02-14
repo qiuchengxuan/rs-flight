@@ -1,4 +1,5 @@
 use drone_core::log::STDOUT_PORT;
+use drone_core::prelude::*;
 use stm32f4xx_hal::otg_fs::{UsbBus, USB};
 use usb_device::bus::UsbBusAllocator;
 use usb_device::prelude::*;

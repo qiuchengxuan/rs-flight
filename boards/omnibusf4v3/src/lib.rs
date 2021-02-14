@@ -8,7 +8,7 @@
 extern crate alloc;
 extern crate pro_flight;
 
-mod stm32f4;
+mod rtc;
 pub mod tasks;
 pub mod thread;
 
