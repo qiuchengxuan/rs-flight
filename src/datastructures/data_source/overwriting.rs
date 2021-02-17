@@ -40,7 +40,7 @@ impl<T> DataWriter<T> for OverwritingData<T> {
             let next_write = (Wrapping(write) + Wrapping(1)).0;
             self.write.store(next_write, Ordering::Relaxed);
             buffer[write % size] = value;
-            self.written.store(next_write, Ordering::Relaxed);
+            self.written.store(next_write, Ordering::Release);
         }
     }
 }
@@ -66,7 +66,7 @@ impl<T> WithCapacity for OverwritingDataSource<T> {
 impl<T: Copy + Clone> OptionData<T> for OverwritingDataSource<T> {
     fn read(&mut self) -> Option<T> {
         let buffer = unsafe { &*self.ring.buffer.get() };
-        let mut written = self.ring.written.load(Ordering::Relaxed);
+        let mut written = self.ring.written.load(Ordering::Acquire);
         let mut delta = written.wrapping_sub(self.read);
         if delta == 0 {
             return None;
@@ -82,7 +82,7 @@ impl<T: Copy + Clone> OptionData<T> for OverwritingDataSource<T> {
                 self.read = self.read.wrapping_add(1);
                 return Some(value);
             }
-            written = self.ring.written.load(Ordering::Relaxed);
+            written = self.ring.written.load(Ordering::Acquire);
             self.read = self.read.wrapping_add(1);
         }
     }

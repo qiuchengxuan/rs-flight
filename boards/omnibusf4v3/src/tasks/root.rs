@@ -4,10 +4,16 @@ use chips::stm32f4::{clock, dfu::Dfu, rtc, systick, usb_serial, valid_memory_add
 use drone_cortexm::{reg::prelude::*, thr::prelude::*};
 use drone_stm32_map::periph::{rtc::periph_rtc, sys_tick::periph_sys_tick};
 use futures::prelude::*;
-use pro_flight::components::cli::{memory, Command, CLI};
-use pro_flight::drivers::led::LED;
-use pro_flight::sys::{jiffies, time, timer};
+use pro_flight::{
+    components::{
+        cli::{memory, Command, CLI},
+        logger::{self, Level},
+    },
+    drivers::led::LED,
+    sys::{jiffies, time, timer},
+};
 use stm32f4xx_hal::{
+    gpio::{Edge, ExtiPin},
     otg_fs::{UsbBus, USB},
     prelude::*,
     stm32,
@@ -50,7 +56,7 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
     let callback = jiffies::init(TICKS_PER_SEC);
     let mut stream = systick::init(periph_sys_tick!(reg), thread.sys_tick, TICKS_PER_SEC, callback);
 
-    let peripherals = stm32::Peripherals::take().unwrap();
+    let mut peripherals = stm32::Peripherals::take().unwrap();
     let gpio_b = peripherals.GPIOB.split();
     let mut led = LED::new(gpio_b.pb5.into_push_pull_output(), timer::SysTimer::new());
 
@@ -60,6 +66,8 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
     rtc.disable_write_protect();
     let rtc_reader = rtc.reader();
     time::init(RTCWriter(rtc), RTCReader(rtc_reader));
+
+    logger::init(Level::Debug);
 
     let gpio_a = peripherals.GPIOA.split();
     let usb = USB {
