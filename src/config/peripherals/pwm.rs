@@ -8,7 +8,7 @@ use heapless::LinearMap;
 use crate::config::setter::{Error, Setter, Value};
 use crate::config::yaml::ToYAML;
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Identifier(pub u8);
 
 impl FromStr for Identifier {
@@ -189,7 +189,7 @@ impl ToYAML for PWM {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PWMs(pub LinearMap<Identifier, PWM, U8>);
 
 impl PWMs {

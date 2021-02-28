@@ -10,7 +10,7 @@ const DEFAULT_MIN_CELL_VOLTAGE: IntegerDecimal = integer_decimal!(3_3, 1);
 const DEFAULT_MAX_CELL_VOLTAGE: IntegerDecimal = integer_decimal!(4_2, 1);
 const DEFAULT_WARNING_CELL_VOLTAGE: IntegerDecimal = integer_decimal!(3_5, 1);
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Battery {
     pub cells: u8,
     pub min_cell_voltage: IntegerDecimal,

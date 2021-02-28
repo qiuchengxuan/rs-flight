@@ -7,7 +7,7 @@ use heapless::LinearMap;
 use crate::config::setter::{Error, Setter, Value};
 use crate::config::yaml::ToYAML;
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Identifier {
     UART(u8),
     USART(u8),
@@ -44,7 +44,7 @@ impl core::fmt::Display for Identifier {
     }
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum GNSSProtocol {
     UBX,
     NMEA,
@@ -71,7 +71,7 @@ impl core::fmt::Display for GNSSProtocol {
     }
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct GNSSConfig {
     pub baudrate: u32,
     pub protocol: GNSSProtocol,
@@ -83,7 +83,7 @@ impl Default for GNSSConfig {
     }
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct SbusConfig {
     pub fast: bool,
     pub rx_inverted: bool,
@@ -106,7 +106,7 @@ impl SbusConfig {
     }
 }
 
-#[derive(PartialEq, Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Config {
     GNSS(GNSSConfig),
     SBUS(SbusConfig),
@@ -165,7 +165,7 @@ impl ToYAML for Config {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Serials(LinearMap<Identifier, Config, U8>);
 
 impl Serials {

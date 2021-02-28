@@ -5,7 +5,7 @@ use super::setter::{Error, Setter, Value};
 
 use super::yaml::ToYAML;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Configuration {
     Airplane,
     FlyingWing,
@@ -35,7 +35,7 @@ impl Into<&str> for Configuration {
     }
 }
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Aircraft {
     pub configuration: Configuration,
 }

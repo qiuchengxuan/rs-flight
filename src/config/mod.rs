@@ -75,7 +75,7 @@ impl ToYAML for Gain {
 
 const DEFAULT_KP: IntegerDecimal = integer_decimal!(0_25, 2);
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Speedometer {
     pub kp: IntegerDecimal,
 }
@@ -103,7 +103,7 @@ impl ToYAML for Speedometer {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Config {
     version: u8,
     pub aircraft: Aircraft,
@@ -225,6 +225,32 @@ mod test {
         let mut yaml_string = String::new();
         file.read_to_string(&mut yaml_string)?;
         let config: Config = YamlParser::new(yaml_string.as_str()).parse();
+
+        let mut buf = String::new();
+        config.write_to(0, &mut buf).ok();
+        assert_eq!(yaml_string.trim(), buf.to_string().trim());
+        Ok(())
+    }
+
+    #[test]
+    #[serial]
+    fn test_binary_decode() -> std::io::Result<()> {
+        use std::fs::File;
+        use std::io::Read;
+        use std::mem;
+        use std::string::String;
+
+        use super::yaml::{ToYAML, YamlParser};
+        use super::Config;
+
+        let mut file = File::open("sample.yml")?;
+        let mut yaml_string = String::new();
+        file.read_to_string(&mut yaml_string)?;
+        let config: Config = YamlParser::new(yaml_string.as_str()).parse();
+        let bytes: &[u8; mem::size_of::<Config>()] = unsafe { mem::transmute(&config) };
+        let mut new_bytes = [0u8; mem::size_of::<Config>()];
+        new_bytes[..].copy_from_slice(bytes);
+        let config: &Config = unsafe { mem::transmute(&new_bytes) };
 
         let mut buf = String::new();
         config.write_to(0, &mut buf).ok();

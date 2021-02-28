@@ -44,7 +44,7 @@ impl Default for HeadingOrCourse {
     }
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Rotation {
     NoRotation,
     Degree90,
@@ -149,7 +149,7 @@ impl PartialOrd for Axes {
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Gain {
     pub x: u16,
     pub y: u16,

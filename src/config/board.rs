@@ -5,7 +5,7 @@ use crate::config::setter::{Error, Setter, Value};
 use crate::config::yaml::ToYAML;
 use crate::datastructures::measurement::Rotation;
 
-#[derive(Copy, Clone, Default)]
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct Board {
     pub rotation: Rotation,
 }

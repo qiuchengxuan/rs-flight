@@ -9,7 +9,7 @@ use crate::datastructures::input::InputType;
 use super::setter::{Error, Setter, Value};
 use super::yaml::ToYAML;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Input {
     pub channel: u8,
     pub scale: u8,
@@ -29,7 +29,7 @@ impl Setter for Input {
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Inputs(pub LinearMap<InputType, Input, U18>);
 
 impl Setter for Inputs {
@@ -62,7 +62,7 @@ impl ToYAML for Inputs {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Receiver {
     pub inputs: Inputs,
 }

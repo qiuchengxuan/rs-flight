@@ -7,7 +7,7 @@ use crate::datastructures::measurement::{Axes, Gain};
 use super::setter::{Error, Setter, Value};
 use super::yaml::ToYAML;
 
-#[derive(Copy, Clone, Default, Debug)]
+#[derive(Copy, Clone, Default, Debug, PartialEq)]
 pub struct Accelerometer {
     pub bias: Axes,
     pub gain: Gain,
@@ -41,7 +41,7 @@ impl ToYAML for Accelerometer {
     }
 }
 
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone, PartialEq)]
 pub struct Magnetometer {
     pub bias: Axes,
     pub gain: Gain,
@@ -78,7 +78,7 @@ impl ToYAML for Magnetometer {
 const DEFAULT_KP: IntegerDecimal = integer_decimal!(0_25, 2);
 const DEFAULT_KI: IntegerDecimal = integer_decimal!(0_005, 3);
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Mahony {
     pub kp: IntegerDecimal,
     pub ki: IntegerDecimal,
@@ -111,7 +111,7 @@ impl ToYAML for Mahony {
     }
 }
 
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Default, Debug, Copy, Clone, PartialEq)]
 pub struct IMU {
     pub accelerometer: Accelerometer,
     pub magnetometer: Magnetometer,
