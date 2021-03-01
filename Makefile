@@ -9,12 +9,11 @@ endif
 boards/$(BOARD)/target/thumbv7em-none-eabihf/release/$(BOARD):
 	(cd boards/$(BOARD); cargo build --release)
 
-$(BOARD).bin: $(TARGET)
-	arm-none-eabi-objcopy -O binary $(TARGET) $(BOARD).bin
-	dfu-suffix -v 0483 -p df11 -a $(BOARD).bin
-
-$(BOARD).hex: $(TARGET)
-	arm-none-eabi-objcopy -O ihex $(TARGET) $(BOARD).hex
+$(BOARD).dfu: $(TARGET)
+	arm-none-eabi-objcopy -O binary -j .vtable $(TARGET) firmware0.bin
+	arm-none-eabi-objcopy -O binary -R .vtable $(TARGET) firmware1.bin
+	scripts/dfuse-pack.py -b 0x08000000:firmware0.bin -b 0x08010000:firmware1.bin $(BOARD).dfu
+	rm -f firmware0.bin firmware1.bin
 
 .PHONY: test
 test:
@@ -25,7 +24,7 @@ clean:
 	(cd boards/$(BOARD); cargo clean)
 
 .PHONY: dfu
-dfu: $(BOARD).bin
-	$(SUDO) dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -D $(BOARD).bin
+dfu: $(BOARD).dfu
+	$(SUDO) dfu-util -d 0483:df11 -a 0 -D $(BOARD).dfu
 
-.DEFAULT_GOAL := $(BOARD).bin
+.DEFAULT_GOAL := $(BOARD).dfu

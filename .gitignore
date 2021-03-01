@@ -4,4 +4,4 @@
 Cargo.lock
 target/
 __pycache__
-/*.bin
+/*.dfu
