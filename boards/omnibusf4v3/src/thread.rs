@@ -27,6 +27,7 @@ thr! {
             pub sys_tick;
         };
         interrupts => {
+            4: pub flash;
             5: pub rcc;
         }
     };

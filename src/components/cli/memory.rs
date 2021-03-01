@@ -63,8 +63,8 @@ pub fn readx(line: &str) {
     _read(line, true)
 }
 
-pub fn write(line: &str) {
-    let mut iter = line[6..].split(' ').flat_map(|w| u32::from_str_radix(w, 16).ok());
+pub fn writex(line: &str) {
+    let mut iter = line.split(' ').flat_map(|w| u32::from_str_radix(w, 16).ok());
     if let Some(address) = iter.next() {
         if let Some(value) = iter.next() {
             if unsafe { MEMORY_ADDRESS_VALIDATOR }(address) {

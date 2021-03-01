@@ -26,5 +26,7 @@ clean:
 .PHONY: dfu
 dfu: $(BOARD).dfu
 	$(SUDO) dfu-util -d 0483:df11 -a 0 -D $(BOARD).dfu
+	$(SUDO) dfu-util -d 0483:df11 -a 0 -s 0x08000000:leave -Z 0 -U empty.bin
+	rm -f empty.bin
 
 .DEFAULT_GOAL := $(BOARD).dfu

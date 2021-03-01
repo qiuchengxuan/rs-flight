@@ -1,25 +1,32 @@
 //! The root task.
 
-use chips::stm32f4::{clock, dfu::Dfu, rtc, systick, usb_serial, valid_memory_address};
+use chips::stm32f4::{
+    clock,
+    dfu::Dfu,
+    flash::{Flash, Sector},
+    rtc, systick, usb_serial, valid_memory_address,
+};
 use drone_cortexm::{reg::prelude::*, thr::prelude::*};
-use drone_stm32_map::periph::{rtc::periph_rtc, sys_tick::periph_sys_tick};
+use drone_stm32_map::periph::{flash::periph_flash, rtc::periph_rtc, sys_tick::periph_sys_tick};
 use futures::prelude::*;
 use pro_flight::{
     components::{
         cli::{memory, Command, CLI},
         logger::{self, Level},
     },
+    config,
     drivers::led::LED,
+    drivers::nvram::NVRAM,
     sys::{jiffies, time, timer},
 };
 use stm32f4xx_hal::{
-    gpio::{Edge, ExtiPin},
     otg_fs::{UsbBus, USB},
     prelude::*,
     stm32,
 };
 
 use crate::{
+    flash::FlashWrapper,
     rtc::{RTCReader, RTCWriter},
     thread,
     thread::ThrsInit,
@@ -51,12 +58,12 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
     let rcc_cir = reg.rcc_cir.into_copy();
 
     reg.rcc_apb1enr.pwren.set_bit();
-    let regs = (reg.rcc_cfgr, reg.rcc_cr, reg.rcc_pllcfgr, reg.flash_acr);
-    clock::setup_pll(&mut thread.rcc, rcc_cir, regs).root_wait();
+    let regs = (reg.rcc_cfgr, reg.rcc_cr, reg.rcc_pllcfgr);
+    clock::setup_pll(&mut thread.rcc, rcc_cir, regs, &reg.flash_acr).root_wait();
     let callback = jiffies::init(TICKS_PER_SEC);
     let mut stream = systick::init(periph_sys_tick!(reg), thread.sys_tick, TICKS_PER_SEC, callback);
 
-    let mut peripherals = stm32::Peripherals::take().unwrap();
+    let peripherals = stm32::Peripherals::take().unwrap();
     let gpio_b = peripherals.GPIOB.split();
     let mut led = LED::new(gpio_b.pb5.into_push_pull_output(), timer::SysTimer::new());
 
@@ -81,11 +88,27 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
     let allocator = UsbBus::new(usb, Box::leak(Box::new([0u32; 1024])));
     let mut poller = usb_serial::init(allocator);
 
-    let commands = [
+    let flash = FlashWrapper::new(Flash::new(periph_flash!(reg)));
+    let sector1 = unsafe { Sector::new(1).unwrap().as_slice() };
+    let sector2 = unsafe { Sector::new(2).unwrap().as_slice() };
+    let mut nvram = NVRAM::new(flash, [sector1, sector2]).unwrap();
+    match nvram.load() {
+        Ok(config) => config::replace(config),
+        Err(error) => error!("Load config failed: {:?}", error),
+    }
+
+    let mut commands = [
         Command::new("reboot", "Reboot", |_| reboot()),
         Command::new("bootloader", "Reboot in bootloader", |_| bootloader()),
+        Command::new("logread", "Show log", |_| println!("{}", logger::get())),
+        Command::new("save", "Save configuration", move |_| {
+            if let Some(err) = nvram.store(config::get()).err() {
+                println!("Save configuration failed: {:?}", err);
+                nvram.reset().ok();
+            }
+        }),
     ];
-    let mut cli = CLI::new(&commands);
+    let mut cli = CLI::new(&mut commands);
     while let Some(_) = stream.next().root_wait() {
         poller.poll(|bytes| cli.receive(bytes));
         led.check_toggle();

@@ -9,6 +9,7 @@ extern crate alloc;
 #[macro_use]
 extern crate pro_flight;
 
+mod flash;
 mod rtc;
 pub mod tasks;
 pub mod thread;

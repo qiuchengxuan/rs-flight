@@ -12,11 +12,15 @@ const RTCPRE: u32 = 8; // HSE / 8 = 1MHz
 const PLL_SELECTED: u32 = 0b10;
 const FLASH_LATENCY: u32 = (SYSCLK - 1) / 30_000_000;
 
-type RccRegs =
-    (reg::rcc::Cfgr<Srt>, reg::rcc::Cr<Srt>, reg::rcc::Pllcfgr<Srt>, reg::flash::Acr<Srt>);
+type RccRegs = (reg::rcc::Cfgr<Srt>, reg::rcc::Cr<Srt>, reg::rcc::Pllcfgr<Srt>);
 
-pub async fn setup_pll(thread: &mut impl ThrFiberFuture, cir: reg::rcc::Cir<Crt>, regs: RccRegs) {
-    let (cfgr, cr, pllcfgr, flash_acr) = regs;
+pub async fn setup_pll(
+    thread: &mut impl ThrFiberFuture,
+    cir: reg::rcc::Cir<Crt>,
+    regs: RccRegs,
+    flash_acr: &reg::flash::Acr<Srt>,
+) {
+    let (cfgr, cr, pllcfgr) = regs;
 
     cir.modify(|r| r.set_hserdyie().set_pllrdyie());
 

@@ -40,7 +40,7 @@ features = ["bit-band", "floating-point-unit", "memory-protection-unit"]
 
 [dependencies.drone-stm32-map]
 path = "../../../../../src/drone-os/drone-stm32-map"
-features = ["exti", "rtc"]
+features = ["exti", "flash", "rtc"]
 
 [profile.release]
 lto = true

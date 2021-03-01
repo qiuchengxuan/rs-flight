@@ -19,14 +19,14 @@ pub struct FixedWing<S> {
     mixer: ControlMixer<S>,
     pwms: Vec<(&'static str, PWM)>,
     configs: Vec<Option<PwmConfig>>,
-    config_version: u8,
+    config_iteration: u8,
 }
 
 impl<S> FixedWing<S> {
     pub fn new(mixer: ControlMixer<S>, pwms: Vec<(&'static str, PWM)>) -> Self {
-        let config_version = config::get().version().wrapping_sub(1);
+        let config_iteration = config::get().iteration().wrapping_sub(1);
         let configs = vec![None; pwms.len()];
-        Self { mixer, pwms, configs, config_version }
+        Self { mixer, pwms, configs, config_iteration }
     }
 
     fn reload_config(&mut self) {
@@ -39,7 +39,7 @@ impl<S> FixedWing<S> {
 
 impl<S: StaticData<ControlInput>> OnEvent for FixedWing<S> {
     fn on_event(&mut self) {
-        if self.config_version != config::get().version() {
+        if self.config_iteration != config::get().iteration() {
             self.reload_config();
         }
         let input = self.mixer.mix();

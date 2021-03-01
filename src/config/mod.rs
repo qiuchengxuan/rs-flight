@@ -9,6 +9,8 @@ pub mod setter;
 pub mod yaml;
 
 use core::fmt::Write;
+use core::mem;
+use core::slice;
 use core::str::Split;
 
 use crate::datastructures::decimal::IntegerDecimal;
@@ -106,6 +108,7 @@ impl ToYAML for Speedometer {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Config {
     version: u8,
+    iteration: u8,
     pub aircraft: Aircraft,
     pub battery: Battery,
     pub board: Board,
@@ -117,14 +120,14 @@ pub struct Config {
 }
 
 impl Config {
-    pub fn version(&self) -> u8 {
-        self.version
+    pub fn iteration(&self) -> u8 {
+        self.iteration
     }
 }
 
 impl Setter for Config {
     fn set(&mut self, path: &mut Split<char>, value: Value) -> Result<(), Error> {
-        self.version += 1;
+        self.iteration += 1;
         match path.next().ok_or(Error::MalformedPath)? {
             "aircraft" => self.aircraft.set(path, value),
             "battery" => self.battery.set(path, value),
@@ -183,6 +186,24 @@ impl core::fmt::Display for Config {
     }
 }
 
+impl From<&[u32]> for Config {
+    fn from(words: &[u32]) -> Self {
+        let mut config = Self::default();
+        let length = mem::size_of::<Self>() / mem::size_of::<u32>();
+        let dest = &mut config as *mut _ as *mut u32;
+        let src = &words[0] as *const _ as *const u32;
+        unsafe { core::ptr::copy_nonoverlapping(src, dest, core::cmp::min(length, words.len())) };
+        config
+    }
+}
+
+impl AsRef<[u32]> for Config {
+    fn as_ref(&self) -> &[u32] {
+        let length = mem::size_of::<Self>() / mem::size_of::<u32>();
+        unsafe { slice::from_raw_parts(self as *const _ as *const u32, length) }
+    }
+}
+
 static mut CONFIG: Option<Config> = None;
 
 #[inline]
@@ -203,7 +224,7 @@ pub fn load<E>(reader: &mut dyn Read<Error = E>) -> &'static Config {
 }
 
 pub fn replace(mut config: Config) {
-    config.version += 1;
+    config.iteration += 1;
     unsafe { CONFIG = Some(config) }
 }
 
