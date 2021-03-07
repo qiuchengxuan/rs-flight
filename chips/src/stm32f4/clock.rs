@@ -5,6 +5,8 @@ use drone_stm32_map::reg;
 
 pub const SYSCLK: u32 = 168_000_000;
 pub const HCLK: u32 = SYSCLK;
+pub const PCLK1: u32 = 42_000_000;
+pub const PCLK2: u32 = 84_000_000;
 const HPRE: u32 = 1; // = SYSCLK
 const PPRE1: u32 = 0b101; // SYSCLK / 4 = 42MHz
 const PPRE2: u32 = 0b100; // SYSCLK / 2 = 84MHz

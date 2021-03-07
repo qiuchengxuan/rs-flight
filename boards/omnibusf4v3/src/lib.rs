@@ -8,8 +8,12 @@
 extern crate alloc;
 #[macro_use]
 extern crate pro_flight;
+#[macro_use]
+extern crate chips;
 
 mod flash;
+mod mpu6000;
+mod spi;
 pub mod tasks;
 pub mod thread;
 

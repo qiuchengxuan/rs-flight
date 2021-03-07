@@ -6,11 +6,15 @@ use chips::stm32f4::{
     clock,
     dfu::Dfu,
     flash::{Flash, Sector},
-    rtc, systick, usb_serial,
+    rtc,
+    spi::BaudrateControl,
+    systick, usb_serial,
 };
 use drone_core::fib::{new_fn, ThrFiberStreamPulse, Yielded};
 use drone_cortexm::{reg::prelude::*, thr::prelude::*};
-use drone_stm32_map::periph::{flash::periph_flash, rtc::periph_rtc, sys_tick::periph_sys_tick};
+use drone_stm32_map::periph::{
+    flash::periph_flash, rtc::periph_rtc, spi::periph_spi1, sys_tick::periph_sys_tick,
+};
 use futures::prelude::*;
 use pro_flight::{
     components::{
@@ -23,12 +27,13 @@ use pro_flight::{
     sys::timer,
 };
 use stm32f4xx_hal::{
+    gpio::{Edge, ExtiPin},
     otg_fs::{UsbBus, USB},
     prelude::*,
     stm32,
 };
 
-use crate::{flash::FlashWrapper, thread, thread::ThrsInit, Regs};
+use crate::{flash::FlashWrapper, mpu6000, spi::Spi1, thread, thread::ThrsInit, Regs};
 
 macro_rules! into_interrupt {
     ($syscfg:ident, $peripherals:ident, $gpio:expr) => {{
@@ -52,13 +57,16 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
     let rcc_cir = reg.rcc_cir.into_copy();
 
     reg.rcc_apb1enr.pwren.set_bit();
+    reg.rcc_apb2enr.modify(|r| r.set_spi1en());
+
     let regs = (reg.rcc_cfgr, reg.rcc_cr, reg.rcc_pllcfgr);
     clock::setup_pll(&mut thread.rcc, rcc_cir, regs, &reg.flash_acr).root_wait();
     systick::init(periph_sys_tick!(reg), thread.sys_tick);
 
-    let peripherals = stm32::Peripherals::take().unwrap();
-    let gpio_a = peripherals.GPIOA.split();
-    let gpio_b = peripherals.GPIOB.split();
+    let mut peripherals = stm32::Peripherals::take().unwrap();
+    let mut syscfg = peripherals.SYSCFG.constrain();
+    let (gpio_a, gpio_b, gpio_c) =
+        (peripherals.GPIOA.split(), peripherals.GPIOB.split(), peripherals.GPIOC.split());
 
     let mut led = LED::new(gpio_b.pb5.into_push_pull_output(), timer::SysTimer::new());
 
@@ -82,6 +90,12 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
         Ok(config) => config::replace(config),
         Err(error) => error!("Load config failed: {:?}", error),
     }
+
+    let pins = (gpio_a.pa5, gpio_a.pa6, gpio_a.pa7);
+    let baudrate = BaudrateControl::new(clock::PCLK2, 1000u32.pow(2));
+    let spi1 = Spi1::new(periph_spi1!(reg), pins, thread.spi_1, baudrate, mpu6000::SPI_MODE);
+    into_interrupt!(syscfg, peripherals, gpio_c.pc4);
+    mpu6000::init(spi1, gpio_a.pa4.into_push_pull_output(), thread.exti_4);
 
     let mut commands = [
         Command::new("reboot", "Reboot", |_| cortex_m::peripheral::SCB::sys_reset()),

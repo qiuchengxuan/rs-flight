@@ -11,6 +11,7 @@ cortex-m = "0.6"
 cortex-m-rt = "0.6"
 crc = { version = "1.8", default-features = false }
 drone-core = { path = "../../../../src/drone-os/drone-core" }
+embedded-hal = "0.2"
 futures = { version = "0.3.0", default-features = false }
 nb = "0.1"
 stm32f4xx-hal = { git = "https://github.com/stm32-rs/stm32f4xx-hal", optional = true }
@@ -24,7 +25,7 @@ optional = true
 
 [dependencies.drone-stm32-map]
 path = "../../../../src/drone-os/drone-stm32-map"
-features = ["exti", "flash", "rtc"]
+features = ["exti", "flash", "rtc", "spi"]
 optional = true
 
 [features]

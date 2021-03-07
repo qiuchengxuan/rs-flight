@@ -29,6 +29,10 @@ thr! {
         interrupts => {
             4: pub flash;
             5: pub rcc;
+            10: pub exti4;
+            35: pub spi1;
+            36: pub spi2;
+            51: pub spi3;
         }
     };
 }
