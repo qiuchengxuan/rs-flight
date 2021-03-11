@@ -7,7 +7,8 @@ pub mod rtc;
 pub mod systick;
 pub mod usb_serial;
 
-pub fn valid_memory_address(address: u32) -> bool {
+#[no_mangle]
+pub fn memory_valid_address(address: usize) -> bool {
     match address {
         0xE000_E008..=0xE000_EF44 => true,
         0x4000_0000..=0xA000_0FFF => true,

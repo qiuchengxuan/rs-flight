@@ -10,7 +10,6 @@ extern crate alloc;
 extern crate pro_flight;
 
 mod flash;
-mod rtc;
 pub mod tasks;
 pub mod thread;
 

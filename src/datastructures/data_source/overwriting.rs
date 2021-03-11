@@ -1,13 +1,10 @@
 use alloc::rc::Rc;
 use alloc::vec::Vec;
 use core::cell::UnsafeCell;
-use core::fmt;
 use core::num::Wrapping;
-use core::str::from_utf8_unchecked;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
 use super::{DataWriter, OptionData, StaticData, WithCapacity};
-use crate::hal::io;
 
 pub struct OverwritingData<T> {
     buffer: UnsafeCell<Vec<T>>,
@@ -99,82 +96,6 @@ impl<T: Copy> StaticData<T> for OverwritingDataSource<T> {
 impl<T> Clone for OverwritingDataSource<T> {
     fn clone(&self) -> Self {
         Self { ring: Rc::clone(&self.ring), read: self.ring.write.load(Ordering::Relaxed) }
-    }
-}
-
-impl fmt::Write for OverwritingData<u8> {
-    fn write_char(&mut self, c: char) -> fmt::Result {
-        let buffer = unsafe { &mut *self.buffer.get() };
-        let size = buffer.len();
-        if size == 0 {
-            return Ok(());
-        }
-        let mut buf = [0u8; 2];
-        let bytes = c.encode_utf8(&mut buf).as_bytes();
-        let write = self.write.load(Ordering::Relaxed) as usize;
-        let next_write = write.wrapping_add(bytes.len());
-        self.write.store(next_write, Ordering::Relaxed);
-        buffer[write % size] = bytes[0];
-        if bytes.len() > 1 {
-            buffer[write.wrapping_add(1) % size] = bytes[1];
-        }
-        self.written.store(next_write, Ordering::Relaxed);
-        Ok(())
-    }
-
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        let buffer = unsafe { &mut *self.buffer.get() };
-        let mut bytes = s.as_bytes();
-        if buffer.len() <= bytes.len() {
-            bytes = &bytes[..buffer.len()];
-        }
-        let size = buffer.len();
-        let write = self.write.load(Ordering::Relaxed) as usize % size;
-        let next_write = write.wrapping_add(bytes.len()) % size;
-        self.write.store(next_write, Ordering::Relaxed);
-
-        if size - write > bytes.len() {
-            buffer[write..write + bytes.len()].copy_from_slice(bytes);
-            self.written.store(next_write, Ordering::Relaxed);
-            return Ok(());
-        }
-
-        let partial_size = size - write;
-        buffer[write..size].copy_from_slice(&bytes[..partial_size]);
-        buffer[..bytes.len() - partial_size].copy_from_slice(&bytes[partial_size..]);
-        self.written.store(next_write, Ordering::Relaxed);
-        Ok(())
-    }
-}
-
-impl fmt::Display for OverwritingDataSource<u8> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let buffer = unsafe { &*self.ring.buffer.get() };
-        let written = self.ring.written.load(Ordering::Relaxed);
-        if written <= buffer.len() {
-            return write!(f, "{}", unsafe { from_utf8_unchecked(&buffer[..written]) });
-        }
-        let size = core::cmp::min(written.wrapping_sub(self.read), buffer.len());
-        let index = written % buffer.len();
-        write!(f, "{}", unsafe { from_utf8_unchecked(&buffer[index..]) })?;
-        write!(f, "{}", unsafe { from_utf8_unchecked(&buffer[..size - (buffer.len() - index)]) })
-    }
-}
-
-impl OverwritingDataSource<u8> {
-    pub fn write<E>(&mut self, writer: &mut impl io::Write<Error = E>) -> Result<usize, E> {
-        let buffer = unsafe { &*self.ring.buffer.get() };
-        let written = self.ring.written.load(Ordering::Relaxed);
-        if written.wrapping_sub(self.read) > buffer.len() {
-            self.read = written.wrapping_sub(buffer.len());
-        }
-        let size = written.wrapping_sub(self.read);
-        let index = written % buffer.len();
-        if size + index <= buffer.len() {
-            return writer.write(&buffer[index..index + size]);
-        }
-        writer.write(&buffer[index..])?;
-        writer.write(&buffer[..size - (buffer.len() - index)])
     }
 }
 

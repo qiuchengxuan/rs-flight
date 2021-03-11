@@ -1,41 +1,53 @@
-use alloc::boxed::Box;
-use core::cell::RefCell;
-
 use chrono::naive::{NaiveDate, NaiveDateTime, NaiveTime};
 
-use super::jiffies;
-use crate::hal::rtc::{Reader, Writer};
+#[derive(Copy, Clone, Debug)]
+pub enum Error {
+    NotImplemented,
+    NotInitialized,
+}
 
-static mut WRITER: Option<RefCell<Box<dyn Writer>>> = None;
-static mut READER: Option<Box<dyn Reader>> = None;
+extern "Rust" {
+    fn time_time() -> NaiveTime;
+    fn time_date() -> NaiveDate;
+    fn time_update(datetime: &NaiveDateTime) -> Result<(), Error>;
+}
+
+pub fn date() -> NaiveDate {
+    unsafe { time_date() }
+}
+
+pub fn time() -> NaiveTime {
+    unsafe { time_time() }
+}
 
 pub fn now() -> NaiveDateTime {
-    if let Some(reader) = unsafe { READER.as_ref() } {
-        return reader.now();
-    }
-    let jiffies = jiffies::get();
-    let (seconds, nanos) = (jiffies.as_secs() as u32, jiffies.subsec_nanos());
-    let time = NaiveTime::from_num_seconds_from_midnight(seconds, nanos);
-    NaiveDateTime::new(NaiveDate::from_ymd(1970, 1, 1), time)
+    NaiveDateTime::new(date(), time())
 }
 
-pub fn update(datetime: &NaiveDateTime) -> Result<(), &'static str> {
-    let refcell = match unsafe { WRITER.as_ref() } {
-        Some(refcell) => refcell,
-        None => return Err("Time module not initialized"),
-    };
-
-    let mut writer = match refcell.try_borrow_mut() {
-        Ok(w) => w,
-        Err(_) => return Err("Time update taking place"),
-    };
-    writer.set_datetime(datetime);
-    Ok(())
+pub fn update(datetime: &NaiveDateTime) -> Result<(), Error> {
+    unsafe { time_update(datetime) }
 }
 
-pub fn init(writer: impl Writer + 'static, reader: impl Reader + 'static) {
-    unsafe {
-        WRITER = Some(RefCell::new(Box::new(writer)));
-        READER = Some(Box::new(reader));
-    }
+#[macro_export]
+macro_rules! fake_rtc {
+    () => {
+        use $crate::jiffies;
+
+        #[no_mangle]
+        fn time_date() -> NaiveDate {
+            NaiveDate::from_ymd(1970, 1, 1)
+        }
+
+        #[no_mangle]
+        fn time_time() -> NaiveTime {
+            let jiffies = jiffies::get();
+            let (seconds, nanos) = (jiffies.as_secs() as u32, jiffies.subsec_nanos());
+            NaiveTime::from_num_seconds_from_midnight(seconds, nanos)
+        }
+
+        #[no_mangle]
+        fn time_update(_datetime: &NaiveDateTime) -> Result<(), Error> {
+            Err(Error::NotImplemented)
+        }
+    };
 }

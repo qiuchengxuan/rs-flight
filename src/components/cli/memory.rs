@@ -4,30 +4,32 @@ use embedded_hal::timer::CountDown;
 
 use crate::sys::timer::SysTimer;
 
-pub type MemoryAddressValidator = fn(u32) -> bool;
-
-fn no_address_validator(_: u32) -> bool {
-    true
+extern "Rust" {
+    fn memory_valid_address(address: usize) -> bool;
 }
 
-static mut MEMORY_ADDRESS_VALIDATOR: MemoryAddressValidator = no_address_validator;
-
-pub fn init(validator: MemoryAddressValidator) {
-    unsafe { MEMORY_ADDRESS_VALIDATOR = validator };
+#[macro_export]
+macro_rules! no_memory_valid_address {
+    () => {
+        #[no_mangle]
+        fn memory_valid_address(address: usize) -> bool {
+            false
+        }
+    };
 }
 
 pub fn dump(line: &str) {
     let mut iter = line.split(' ');
-    let mut address: u32 = 0;
+    let mut address: usize = 0;
     if let Some(word) = iter.next() {
-        if let Some(addr) = u32::from_str_radix(word, 16).ok() {
+        if let Some(addr) = usize::from_str_radix(word, 16).ok() {
             address = addr;
         }
     }
     if address == 0 {
         return;
     }
-    if !unsafe { MEMORY_ADDRESS_VALIDATOR }(address) {
+    if !unsafe { memory_valid_address(address) } {
         return;
     }
     let mut size: usize = 0;
@@ -40,39 +42,38 @@ pub fn dump(line: &str) {
     println!("Result: {:x?}", slice)
 }
 
-fn _read(line: &str, hex: bool) {
+fn _read(line: &str) -> Option<usize> {
     let mut split = line.split(' ');
-    if let Some(address) = split.next().map(|s| u32::from_str_radix(s, 16).ok()).flatten() {
-        if unsafe { MEMORY_ADDRESS_VALIDATOR }(address) {
-            return if hex {
-                let value = unsafe { *(address as *const u32) };
-                println!("Result: {:x}", value)
-            } else {
-                let value = unsafe { *(address as *const u32) };
-                println!("Result: {}", value)
-            };
+    if let Some(address) = split.next().map(|s| usize::from_str_radix(s, 16).ok()).flatten() {
+        if unsafe { memory_valid_address(address) } {
+            return Some(unsafe { *(address as *const usize) });
         }
     }
+    None
 }
 
 pub fn read(line: &str) {
-    _read(line, false)
+    if let Some(value) = _read(line) {
+        println!("Result: {}", value)
+    }
 }
 
 pub fn readx(line: &str) {
-    _read(line, true)
+    if let Some(value) = _read(line) {
+        println!("Result: {:x}", value);
+    }
 }
 
 pub fn writex(line: &str) {
-    let mut iter = line.split(' ').flat_map(|w| u32::from_str_radix(w, 16).ok());
+    let mut iter = line.split(' ').flat_map(|w| usize::from_str_radix(w, 16).ok());
     if let Some(address) = iter.next() {
         if let Some(value) = iter.next() {
-            if unsafe { MEMORY_ADDRESS_VALIDATOR }(address) {
-                unsafe { *(address as *mut u32) = value };
+            if unsafe { memory_valid_address(address) } {
+                unsafe { *(address as *mut usize) = value };
                 let mut count_down = SysTimer::new();
                 count_down.start(Duration::from_millis(1));
                 nb::block!(count_down.wait()).ok();
-                let value = unsafe { *(address as *const u32) };
+                let value = unsafe { *(address as *const usize) };
                 println!("Write result: {:x?}", value);
             }
         }

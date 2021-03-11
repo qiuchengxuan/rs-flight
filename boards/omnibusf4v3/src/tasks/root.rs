@@ -6,7 +6,7 @@ use chips::stm32f4::{
     clock,
     dfu::Dfu,
     flash::{Flash, Sector},
-    rtc, systick, usb_serial, valid_memory_address,
+    rtc, systick, usb_serial,
 };
 use drone_core::fib::{new_fn, ThrFiberStreamPulse, Yielded};
 use drone_cortexm::{reg::prelude::*, thr::prelude::*};
@@ -14,13 +14,13 @@ use drone_stm32_map::periph::{flash::periph_flash, rtc::periph_rtc, sys_tick::pe
 use futures::prelude::*;
 use pro_flight::{
     components::{
-        cli::{memory, Command, CLI},
-        logger::{self, Level},
+        cli::{Command, CLI},
+        logger,
     },
     config,
     drivers::led::LED,
     drivers::nvram::NVRAM,
-    sys::{jiffies, time, timer},
+    sys::timer,
 };
 use stm32f4xx_hal::{
     otg_fs::{UsbBus, USB},
@@ -28,13 +28,7 @@ use stm32f4xx_hal::{
     stm32,
 };
 
-use crate::{
-    flash::FlashWrapper,
-    rtc::{RTCReader, RTCWriter},
-    thread,
-    thread::ThrsInit,
-    Regs,
-};
+use crate::{flash::FlashWrapper, thread, thread::ThrsInit, Regs};
 
 macro_rules! into_interrupt {
     ($syscfg:ident, $peripherals:ident, $gpio:expr) => {{
@@ -52,7 +46,6 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
     let mut dfu = Dfu(MaybeUninit::uninit());
     dfu.check();
 
-    memory::init(valid_memory_address);
     let mut thread = thread::init(thr_init);
     thread.hard_fault.add_once(|| panic!("Hard Fault"));
     thread.rcc.enable_int();
@@ -71,12 +64,8 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
 
     reg.pwr_cr.modify(|r| r.set_dbp());
     reg.rcc_bdcr.modify(|r| r.set_rtcsel1().set_rtcsel0().set_rtcen()); // select HSE
-    let mut rtc = rtc::RTC::new(periph_rtc!(reg));
-    rtc.disable_write_protect();
-    let rtc_reader = rtc.reader();
-    time::init(RTCWriter(rtc), RTCReader(rtc_reader));
-
-    logger::init(Level::Debug);
+    rtc::init(periph_rtc!(reg));
+    logger::init(Box::leak(Box::new([0u8; 1024])));
 
     let (usb_global, usb_device, usb_pwrclk) =
         (peripherals.OTG_FS_GLOBAL, peripherals.OTG_FS_DEVICE, peripherals.OTG_FS_PWRCLK);

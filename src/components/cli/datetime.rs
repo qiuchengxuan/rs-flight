@@ -7,11 +7,11 @@ pub fn date(line: &str) {
         println!("{}", time::now());
         return;
     }
-    if let Some(datetime) = NaiveDateTime::parse_from_str(line, "%Y-%m-%d %H:%M:%S").ok() {
-        if let Some(err) = time::update(&datetime).err() {
-            println!("{}", err)
-        }
-    } else {
-        println!("Malformed datetime: {}", line);
-    }
+    match NaiveDateTime::parse_from_str(line, "%Y-%m-%d %H:%M:%S") {
+        Ok(datetime) => match time::update(&datetime) {
+            Ok(_) => println!("ok."),
+            Err(err) => println!("{:?}", err),
+        },
+        Err(_) => println!("Malformed datetime: {}", line),
+    };
 }

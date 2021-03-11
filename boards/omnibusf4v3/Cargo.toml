@@ -29,7 +29,7 @@ drone-core = { path = "../../../../../src/drone-os/drone-core" }
 embedded-hal = "0.2"
 futures = { version = "0.3.0", default-features = false }
 nb = "1.0"
-pro-flight = { path = "../.." }
+pro-flight = { path = "../..", default-features = false, features = ["log-level-debug"] }
 stm32f4xx-hal = { git = "https://github.com/stm32-rs/stm32f4xx-hal", features = ["stm32f405", "rt", "usb_fs"] }
 usb-device = "0.2"
 usbd-serial = "0.1"

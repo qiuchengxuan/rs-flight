@@ -1,3 +1,5 @@
+use core::mem::MaybeUninit;
+
 use chrono::naive::{NaiveDate, NaiveDateTime, NaiveTime};
 use chrono::{Datelike, Timelike};
 use drone_cortexm::reg::prelude::*;
@@ -56,6 +58,9 @@ impl RTCReader {
         NaiveTime::from_hms_milli(hour.0, minute.0, second.0, sub_second)
     }
 }
+
+unsafe impl Send for RTCReader {}
+unsafe impl Sync for RTCReader {}
 
 pub struct RTC {
     tr: reg::rtc::Tr<Crt>,
@@ -147,4 +152,39 @@ impl RTC {
     pub fn reader(&self) -> RTCReader {
         RTCReader { tr: self.tr, dr: self.dr, ssr: self.ssr }
     }
+}
+
+static mut RTC: Option<RTC> = None;
+
+#[no_mangle]
+fn time_update(datetime: &NaiveDateTime) -> Result<(), &'static str> {
+    cortex_m::interrupt::free(|_cs| {
+        let rtc = match unsafe { RTC.as_mut() } {
+            Some(rtc) => rtc,
+            None => return Err("RTC not initialized yet"),
+        };
+        rtc.set_datetime(datetime);
+        Ok(())
+    })
+}
+
+static mut RTC_READER: MaybeUninit<RTCReader> = MaybeUninit::uninit();
+
+#[no_mangle]
+fn time_time() -> NaiveTime {
+    unsafe { &*RTC_READER.as_ptr() }.time()
+}
+
+#[no_mangle]
+fn time_date() -> NaiveDate {
+    unsafe { &*RTC_READER.as_ptr() }.date()
+}
+
+pub fn init(regs: RtcPeriph) {
+    let mut rtc = RTC::new(regs);
+    rtc.disable_write_protect();
+    cortex_m::interrupt::free(|_cs| unsafe {
+        RTC_READER = MaybeUninit::new(rtc.reader());
+        RTC = Some(rtc);
+    })
 }

@@ -37,6 +37,13 @@ void = { version = "1", default-features = false }
 [lib]
 name = "pro_flight"
 
+[features]
+log-level-debug = []
+log-level-info = []
+log-level-warning = []
+log-level-error = []
+default = ["log-level-info"]
+
 [dev-dependencies]
 hex-literal = "0.3"
 pretty_assertions = "0.4"

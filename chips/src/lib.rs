@@ -1,8 +1,7 @@
 #![no_std]
 
-#[macro_use]
-extern crate cortex_m_rt;
 extern crate cortex_m;
+extern crate cortex_m_rt;
 #[cfg(feature = "stm32")]
 extern crate drone_cortexm;
 #[cfg(feature = "stm32")]
