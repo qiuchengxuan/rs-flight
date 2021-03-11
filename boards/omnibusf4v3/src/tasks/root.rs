@@ -36,7 +36,15 @@ use crate::{
     Regs,
 };
 
-const TICKS_PER_SEC: usize = 200;
+macro_rules! into_interrupt {
+    ($syscfg:ident, $peripherals:ident, $gpio:expr) => {{
+        let mut int = $gpio.into_pull_up_input();
+        int.make_interrupt_source(&mut $syscfg);
+        int.enable_interrupt(&mut $peripherals.EXTI);
+        int.trigger_on_edge(&mut $peripherals.EXTI, Edge::FALLING);
+        int
+    }};
+}
 
 /// The root task handler.
 #[inline(never)]
@@ -53,12 +61,7 @@ pub fn handler(reg: Regs, thr_init: ThrsInit) {
     reg.rcc_apb1enr.pwren.set_bit();
     let regs = (reg.rcc_cfgr, reg.rcc_cr, reg.rcc_pllcfgr);
     clock::setup_pll(&mut thread.rcc, rcc_cir, regs, &reg.flash_acr).root_wait();
-    systick::init(periph_sys_tick!(reg), TICKS_PER_SEC);
-    let callback = jiffies::init(TICKS_PER_SEC);
-    thread.sys_tick.add_fib(new_fn(move || {
-        callback();
-        Yielded::<(), ()>(())
-    }));
+    systick::init(periph_sys_tick!(reg), thread.sys_tick);
 
     let peripherals = stm32::Peripherals::take().unwrap();
     let gpio_a = peripherals.GPIOA.split();
